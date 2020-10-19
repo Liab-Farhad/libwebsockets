@@ -1424,8 +1424,11 @@ lws_http_action(struct lws *wsi)
 	lwsl_info("Method: '%s' (%d), request for '%s'\n", method_names[meth],
 		  meth, uri_ptr);
 
-	if (wsi->role_ops && wsi->role_ops->check_upgrades)
-		switch (wsi->role_ops->check_upgrades(wsi)) {
+	if (wsi->role_ops &&
+	    lws_rops_fidx(wsi->role_ops, LWS_ROPS_check_upgrades))
+		switch (lws_rops_func_fidx(wsi->role_ops,
+					   LWS_ROPS_check_upgrades).
+							check_upgrades(wsi)) {
 		case LWS_UPG_RET_DONE:
 			return 0;
 		case LWS_UPG_RET_CONTINUE:
@@ -2903,9 +2906,10 @@ int lws_serve_http_file_fragment(struct lws *wsi)
 		    poss > wsi->a.protocol->tx_packet_size)
 			poss = wsi->a.protocol->tx_packet_size;
 
-		if (wsi->role_ops->tx_credit) {
-			lws_filepos_t txc =
-				wsi->role_ops->tx_credit(wsi, LWSTXCR_US_TO_PEER, 0);
+		if (lws_rops_fidx(wsi->role_ops, LWS_ROPS_tx_credit)) {
+			lws_filepos_t txc = lws_rops_func_fidx(wsi->role_ops,
+							       LWS_ROPS_tx_credit).
+					tx_credit(wsi, LWSTXCR_US_TO_PEER, 0);
 
 			if (!txc) {
 				/*

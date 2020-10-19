@@ -143,10 +143,11 @@ lws_handle_POLLOUT_event(struct lws *wsi, struct lws_pollfd *pollfd)
 	/* if we got here, we should have wire protocol ops set on the wsi */
 	assert(wsi->role_ops);
 
-	if (!wsi->role_ops->handle_POLLOUT)
+	if (!lws_rops_fidx(wsi->role_ops, LWS_ROPS_handle_POLLOUT))
 		goto bail_ok;
 
-	n = wsi->role_ops->handle_POLLOUT(wsi);
+	n = lws_rops_func_fidx(wsi->role_ops, LWS_ROPS_handle_POLLOUT).
+							handle_POLLOUT(wsi);
 	switch (n) {
 	case LWS_HP_RET_BAIL_OK:
 		goto bail_ok;
@@ -202,8 +203,10 @@ lws_handle_POLLOUT_event(struct lws *wsi, struct lws_pollfd *pollfd)
 user_service_go_again:
 #endif
 
-	if (wsi->role_ops->perform_user_POLLOUT) {
-		if (wsi->role_ops->perform_user_POLLOUT(wsi) == -1)
+	if (lws_rops_fidx(wsi->role_ops, LWS_ROPS_perform_user_POLLOUT)) {
+		if (lws_rops_func_fidx(wsi->role_ops,
+				       LWS_ROPS_perform_user_POLLOUT).
+						perform_user_POLLOUT(wsi) == -1)
 			goto bail_die;
 		else
 			goto bail_ok;
@@ -540,7 +543,9 @@ lws_service_do_ripe_rxflow(struct lws_context_per_thread *pt)
 		    lwsi_state(wsi) != LRS_DEFERRING_ACTION) {
 			pt->inside_lws_service = 1;
 
-			if ((wsi->role_ops->handle_POLLIN)(pt, wsi, &pfd) ==
+			if (lws_rops_func_fidx(wsi->role_ops,
+					       LWS_ROPS_handle_POLLIN).
+						handle_POLLIN(pt, wsi, &pfd) ==
 						   LWS_HPI_RET_PLEASE_CLOSE_ME)
 				lws_close_free_wsi(wsi, LWS_CLOSE_STATUS_NOSTATUS,
 						"close_and_handled");
@@ -587,7 +592,9 @@ lws_service_flag_pending(struct lws_context *context, int tsi)
 	} lws_end_foreach_dll(d);
 
 #if defined(LWS_ROLE_WS)
-	forced |= role_ops_ws.service_flag_pending(context, tsi);
+	forced |= lws_rops_func_fidx(&role_ops_ws,
+				     LWS_ROPS_service_flag_pending).
+					service_flag_pending(context, tsi);
 #endif
 
 #if defined(LWS_WITH_TLS)
@@ -716,7 +723,8 @@ lws_service_fd_tsi(struct lws_context *context, struct lws_pollfd *pollfd,
 	// lwsl_notice("%s: %s: wsistate 0x%x\n", __func__, wsi->role_ops->name,
 	//	    wsi->wsistate);
 
-	switch ((wsi->role_ops->handle_POLLIN)(pt, wsi, pollfd)) {
+	switch (lws_rops_func_fidx(wsi->role_ops, LWS_ROPS_handle_POLLIN).
+					       handle_POLLIN(pt, wsi, pollfd)) {
 	case LWS_HPI_RET_WSI_ALREADY_DIED:
 		pt->inside_lws_service = 0;
 		return 1;
